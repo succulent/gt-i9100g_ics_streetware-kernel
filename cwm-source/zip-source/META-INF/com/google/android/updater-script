@@ -1,0 +1,5 @@
+ui_print(" ");
+ui_print("streetware-ics-kernel-1.0.0");
+package_extract_file("zImage", "/tmp/zImage");
+write_raw_image("/tmp/zImage", "/dev/block/mmcblk0p5");
+delete("/tmp/zImage");
