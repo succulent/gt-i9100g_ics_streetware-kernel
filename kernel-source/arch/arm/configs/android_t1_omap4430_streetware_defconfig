@@ -1,6 +1,6 @@
 #
 # Automatically generated make config: don't edit
-# Linux/arm 3.0.8 Kernel Configuration
+# Linux/arm 3.0.33 Kernel Configuration
 #
 CONFIG_ARM=y
 CONFIG_HAVE_PWM=y
@@ -2256,7 +2256,7 @@ CONFIG_MACH_NO_WESTBRIDGE=y
 # Altera FPGA firmware download module
 #
 # CONFIG_ALTERA_STAPL is not set
-CONFIG_SAMSUNG_VIBETONZ=y
+# CONFIG_SAMSUNG_VIBETONZ is not set
 CONFIG_CLKDEV_LOOKUP=y
 # CONFIG_HWSPINLOCK is not set
 CONFIG_REMOTE_PROC=y
@@ -2286,6 +2286,8 @@ CONFIG_INPUT_CM3663=y
 # CONFIG_OPTICAL_AL3201 is not set
 CONFIG_SENSORS_CORE=y
 # CONFIG_SAMSUNG_PHONE_SVNET is not set
+CONFIG_SAMSUNG_MODULES=y
+CONFIG_J4FS=m
 
 #
 # File systems
