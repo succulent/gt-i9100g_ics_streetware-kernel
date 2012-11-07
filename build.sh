@@ -1,14 +1,10 @@
-#!/bin/sh
+#!/bin/bash
 
-clear
-
-#
-# setup variables and directories
-#
+reset
 
 KERNEL_VERSION="streetware-ics-kernel-1.0.0"
 
-WORK_DIRECTORY=`readlink -f .`
+WORK_DIRECTORY=$PWD
 
 CROSS_COMPILER_DIRECTORY="$WORK_DIRECTORY/arm-eabi-4.4.3"
 
@@ -22,170 +18,174 @@ INITRAMFS_DIRECTORY="$KERNEL_DIRECTORY/initramfs-source"
 
 CONFIG_FILE="$KERNEL_DIRECTORY/arch/arm/configs/android_t1_omap4430_streetware_defconfig"
 
-#
-# check for existing files
-#
-
-if [ `find -maxdepth 1 \( -name $KERNEL_VERSION.tar.md5 -o -name $KERNEL_VERSION.zip \) -type f | wc -l` -ne 0 ];
+if [ `find -maxdepth 1 \( -name $KERNEL_VERSION.tar.md5 -o -name $KERNEL_VERSION.zip -o -name $KERNEL_VERSION.zip.md5 \) -type f | wc -l` -ne 0 ];
 then
-	echo
 	echo "please remove these files:"
 	echo
-	find -maxdepth 1 \( -name $KERNEL_VERSION.tar.md5 -o -name $KERNEL_VERSION.zip \) -type f -exec sh -c 'basename $0' {} \;
+
+	find -maxdepth 1 \( -name $KERNEL_VERSION.tar.md5 -o -name $KERNEL_VERSION.zip -o -name $KERNEL_VERSION.zip.md5 \) -type f -exec sh -c 'basename $0' {} \;
+
 	echo
+
 	exit
 fi;
 
-#
-# make mrproper
-#
+echo -n "make mrproper... "
 
-echo
-echo "make mrproper... \c"
 cd $KERNEL_DIRECTORY
+
 make -s mrproper > /dev/null
+
 cd $WORK_DIRECTORY
+
 echo "done."
 
-#
-# setup initramfs directory
-#
-
 echo
-echo "setup initramfs directory... \c"
+echo -n "setup initramfs directory... "
+
 mkdir $INITRAMFS_DIRECTORY
+
 cp -a $INITRAMFS_SOURCE_DIRECTORY $KERNEL_DIRECTORY
+
 echo "done."
 
-#
-# remove placeholders
-#
-
 echo
-echo "remove placeholders... \c"
+echo -n "remove placeholders... "
+
 find $INITRAMFS_DIRECTORY -name README -delete
+
 echo "done."
 
-#
-# copy readme
-#
-
 echo
-echo "copy 'README'... \c"
+echo -n "copy readme... "
+
 cp -a $WORK_DIRECTORY/README $INITRAMFS_DIRECTORY/misc/streetware/README
-echo "done."
 
-#
-# copy config
-#
+echo "done."
 
 echo
-echo "copy '.config'... \c"
-cp -a $CONFIG_FILE $KERNEL_DIRECTORY/.config
-echo "done."
+echo -n "copy config... "
 
-#
-# make menuconfig
-#
+cp -a $CONFIG_FILE $KERNEL_DIRECTORY/.config
+
+echo "done."
 
 echo
 echo "make menuconfig..."
 echo
+
 cd $KERNEL_DIRECTORY
+
 make -s menuconfig || exit 1
+
 cd $WORK_DIRECTORY
+
 echo
 echo "make menuconfig... done."
 
-#
-# compile modules
-#
-
 echo
-echo "compile modules... \c"
+echo "compile modules..."
+echo
+
 cd $KERNEL_DIRECTORY
+
 make -s -j8 modules > /dev/null || exit 1
-cd $WORK_DIRECTORY
-echo "done."
 
-#
-# copy modules
-#
+cd $WORK_DIRECTORY
 
 echo
-echo "copy modules... \c"
+echo "compile modules... done."
+
+echo
+echo -n "copy modules... "
+
 cd $KERNEL_DIRECTORY
+
 for i in $(find -name *.ko | grep .ko | grep './')
 do
-cp -a $i $INITRAMFS_DIRECTORY/lib/modules/
+	cp -a $i $INITRAMFS_DIRECTORY/lib/modules/
 done
-cd $WORK_DIRECTORY
-echo "done."
 
-#
-# strip modules
-#
+cd $WORK_DIRECTORY
+
+echo "done."
 
 echo
-echo "strip modules... \c"
+echo -n "strip modules... "
+
 cd $INITRAMFS_DIRECTORY/lib/modules
+
 for i in $(find . | grep .ko | grep './')
 do
-$CROSS_COMPILER_DIRECTORY/bin/arm-eabi-strip --strip-unneeded $i
+	$CROSS_COMPILER_DIRECTORY/bin/arm-eabi-strip --strip-unneeded $i
 done
-cd $WORK_DIRECTORY
-echo "done."
 
-#
-# compile kernel
-#
+cd $WORK_DIRECTORY
+
+echo "done."
 
 echo
 echo "compile kernel..."
 echo
+
 cd $KERNEL_DIRECTORY
+
 make -s -j2 zImage > /dev/null || exit 1
+
 cd $WORK_DIRECTORY
+
 echo
 echo "compile kernel... done."
 
-#
-# create tar archive
-#
-
 echo
-echo "create '$KERNEL_VERSION.tar.md5'... \c"
-cd $KERNEL_DIRECTORY/arch/arm/boot
-tar cf $WORK_DIRECTORY/$KERNEL_VERSION.tar zImage  > /dev/null
-cd $WORK_DIRECTORY
-md5sum -t $KERNEL_VERSION.tar >> $KERNEL_VERSION.tar
-mv $KERNEL_VERSION.tar $KERNEL_VERSION.tar.md5
-echo "done."
+echo -n "create '$KERNEL_VERSION.zip'... "
 
-#
-# create zip archive
-#
-
-echo
-echo "create '$KERNEL_VERSION.zip'... \c"
 cp -f $KERNEL_DIRECTORY/arch/arm/boot/zImage $CWM_DIRECTORY/zip-source/
+
 cd $CWM_DIRECTORY/zip-source/
+
 zip -r $WORK_DIRECTORY/unsigned_$KERNEL_VERSION.zip * > /dev/null
+
 cd $WORK_DIRECTORY
+
 java -jar $CWM_DIRECTORY/java-sign/signapk.jar $CWM_DIRECTORY/java-sign/testkey.x509.pem $CWM_DIRECTORY/java-sign/testkey.pk8 unsigned_$KERNEL_VERSION.zip $KERNEL_VERSION.zip > /dev/null
+
 rm -f $CWM_DIRECTORY/zip-source/zImage
 rm -f $WORK_DIRECTORY/unsigned_$KERNEL_VERSION.zip
+
 echo "done."
 
-#
-# make mrproper
-#
+echo
+echo -n "create '$KERNEL_VERSION.zip.md5'... "
+
+md5sum $KERNEL_VERSION.zip > $KERNEL_VERSION.zip.md5
+
+echo "done."
 
 echo
-echo "make mrproper... \c"
-cd $KERNEL_DIRECTORY
-make -s mrproper > /dev/null
+echo -n "create '$KERNEL_VERSION.tar.md5'... "
+
+cd $KERNEL_DIRECTORY/arch/arm/boot
+
+tar cf $WORK_DIRECTORY/$KERNEL_VERSION.tar zImage  > /dev/null
+
 cd $WORK_DIRECTORY
+
+md5sum -t $KERNEL_VERSION.tar >> $KERNEL_VERSION.tar
+
+mv $KERNEL_VERSION.tar $KERNEL_VERSION.tar.md5
+
+echo "done."
+
+echo
+echo -n "make mrproper... "
+
+cd $KERNEL_DIRECTORY
+
+make -s mrproper > /dev/null
+
+cd $WORK_DIRECTORY
+
 echo "done."
 
 echo
